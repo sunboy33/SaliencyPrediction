@@ -32,6 +32,8 @@ def get_real_c(x,classifier_nets,device):
 
 
 def vis(real_c,fake_c,epoch):
+    if not os.path.exists("temp"):
+        os.mkdir("temp")
     real_c_grid = make_grid(real_c[:24].cpu()).numpy()
     Image.fromarray(np.array(real_c_grid[0] * 255,dtype=np.uint8)).save(f"temp/{epoch}_real_c.png")
     fake_c_grid = make_grid(fake_c[:24].cpu()).numpy()
@@ -80,7 +82,7 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
             g_loss.backward()
             optimizer_G.step()
             if i == 1 or i % 50 == 0:
-                print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()} g_loss: {g_loss.item()}]")
+                print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()/bs} g_loss: {g_loss.item()/bs}]")
             if f == 0 or f % 500 == 0:
                 vis(real_c,fake_c,f)
             f += 1
