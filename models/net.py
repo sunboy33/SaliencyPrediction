@@ -5,8 +5,8 @@ from torchvision import models
 class Generator(nn.Module):
     def __init__(self):
         super().__init__()
-        # self.encoder = nn.Sequential(*list(models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features.children())[:-1])
-        self.encoder = nn.Sequential(*list(models.vgg16().features.children())[:-1])
+        self.encoder = nn.Sequential(*list(models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features.children())[:-1])
+        # self.encoder = nn.Sequential(*list(models.vgg16().features.children())[:-1])
         self.decoder1 = nn.Sequential(nn.Conv2d(512,512,3,1,1),
                                       nn.ReLU(inplace=True),
                                       nn.Conv2d(512,512,3,1,1),
@@ -79,15 +79,12 @@ class Discriminator(nn.Module):
                                         nn.Linear(2,1),
                                         nn.Sigmoid())
 
-    
     def forward(self,x,c):
         x = torch.cat([x,c],dim=1)
         x = self.features(x)
         x = x.view(size=(x.shape[0],-1))
         x = self.classifier(x)
         return x
-
-
 
 
 if __name__ == "__main__":
