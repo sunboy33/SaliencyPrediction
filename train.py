@@ -48,18 +48,19 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
         net_D.train()
         for i,(x,_) in enumerate(dataloader["train"]):
             x = x.to(device)
+            batch_size = x.shape[0]
             real_c = get_real_c(x,classifier_nets,device)
             # 训练判别器
             optimizer_D.zero_grad()
             # 计算判别器对真实图像的损失
-            real_labels = torch.ones(bs,1,device=device)
+            real_labels = torch.ones(batch_size,1,device=device)
             real_output = net_D(x,real_c)
             d_real_loss = criterion(real_output,real_labels)
 
             # 预测saliency map
             fake_c = net_G(x)
             # 计算判别器对预测图像的损失
-            fake_labels = torch.zeros(bs, 1,device=device)
+            fake_labels = torch.zeros(batch_size, 1,device=device)
             fake_output = net_D(x,fake_c)
             d_fake_loss = criterion(fake_output, fake_labels)
 
@@ -73,15 +74,15 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
             fake_c = net_G(x)
             # 计算二元交叉熵损失
             bce_loss = criterion(fake_c,real_c)
-            fake_labels = torch.ones(bs, 1,device=device)
+            fake_labels = torch.ones(batch_size, 1,device=device)
             fake_output = net_D(x,fake_c)
             g_fake_loss = criterion(fake_output, fake_labels)
             g_loss = 0.005 * bce_loss + g_fake_loss
             g_loss.backward()
             optimizer_G.step()
-            if i == 0 or i % 50 == 0:
+            if i == 0 or i % 100 == 0:
                 print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()/bs} g_loss: {g_loss.item()/bs}]")
-            if f == 0 or f % 500 == 0:
+            if f == 0 or f % 1000 == 0:
                 vis(real_c,fake_c,f)
             f += 1
 
