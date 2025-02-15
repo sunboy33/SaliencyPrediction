@@ -21,7 +21,7 @@ def get_dataloader(batch_size):
 
     # t_dataset = Subset(t_dataset,list(range(1024)))
     # v_dataset = Subset(v_dataset,list(range(1024,1500)))
-    td = DataLoader(t_dataset,shuffle=True,batch_size=batch_size,num_workers=0)
-    vd = DataLoader(v_dataset,shuffle=False,batch_size=batch_size,num_workers=0)
+    td = DataLoader(t_dataset,shuffle=True,batch_size=batch_size,num_workers=4)
+    vd = DataLoader(v_dataset,shuffle=False,batch_size=batch_size,num_workers=4)
     return {"train":td,"val":vd}
 

@@ -6,6 +6,7 @@ from torchvision import transforms
 from torchvision.utils import make_grid
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 
 def get_real_c(x,classifier_nets,device):
@@ -44,7 +45,7 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
         net_G.train()
         net_D.train()
         l1,l2 = 0.0,0.0
-        for x,_ in dataloader["train"]:
+        for x,_ in tqdm(dataloader["train"]):
             x = x.to(device)
             batch_size = x.shape[0]
             real_c = get_real_c(x,classifier_nets,device)
@@ -82,13 +83,13 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
             l2 += g_loss.item()
 
         print(f"[{epoch}/{epochs}][d_loss: {l1/n_samples} g_loss: {l2/n_samples}]")
-        if epoch == 1 or epoch % 5 == 0:
+        if epoch == 1 or epoch % 2 == 0:
             vis(real_c,fake_c)
 
 def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     net_G,net_D = Generator().to(device),Discriminator().to(device)
-    dataloader = get_dataloader(batch_size=4)
+    dataloader = get_dataloader(batch_size=32)
     criterion = torch.nn.BCELoss()
     optimizer_G = torch.optim.Adagrad(net_G.parameters(),lr=3e-4,weight_decay=1e-4)
     optimizer_D = torch.optim.Adagrad(net_D.parameters(),lr=3e-4,weight_decay=1e-4)
