@@ -41,10 +41,11 @@ def vis(real_c,fake_c,epoch):
 
 def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs,classifier_nets):
     bs = dataloader["train"].batch_size
+    f = 0
     for epoch in range(1,epochs+1):
         net_G.train()
         net_D.train()
-        for i,(x,_) in enumerate(tqdm(dataloader["train"])):
+        for i,(x,_) in enumerate(dataloader["train"]):
             x = x.to(device)
             batch_size = x.shape[0]
             real_c = get_real_c(x,classifier_nets,device)
@@ -78,10 +79,11 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
             g_loss = bce_loss + g_fake_loss
             g_loss.backward()
             optimizer_G.step()
-            if i==1 or i%50 ==0 :
+            if i == 1 or i % 50 == 0:
                 print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()} g_loss: {g_loss.item()}]")
-            if epoch == 1 or epoch % 2 == 0:
-                vis(real_c,fake_c)
+            if f == 0 or f % 500 == 0:
+                vis(real_c,fake_c,f)
+            f += 1
 
 def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
