@@ -42,7 +42,6 @@ def vis(real_c,fake_c,epoch):
 
 def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs,classifier_nets):
     bs = dataloader["train"].batch_size
-    f = 0
     for epoch in range(1,epochs+1):
         net_G.train()
         net_D.train()
@@ -50,50 +49,59 @@ def train(net_G,net_D,dataloader,criterion,optimizer_G,optimizer_D,device,epochs
             x = x.to(device)
             batch_size = x.shape[0]
             real_c = get_real_c(x,classifier_nets,device)
-            # 训练判别器
-            optimizer_D.zero_grad()
-            # 计算判别器对真实图像的损失
-            real_labels = torch.ones(batch_size,1,device=device)
-            real_output = net_D(x,real_c)
-            d_real_loss = criterion(real_output,real_labels)
+            if epoch <= 15:
+                optimizer_G.zero_grad()
+                fake_c = net_G(x)
+                # 计算二元交叉熵损失
+                bce_loss = criterion(fake_c,real_c)
+                bce_loss.backward()
+                optimizer_G.step()
+                if i == 0 or i % 100 == 0:
+                    print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][bce_loss: {bce_loss.item()/bs}]")
+            else:
+                # 训练判别器
+                optimizer_D.zero_grad()
+                # 计算判别器对真实图像的损失
+                real_labels = torch.ones(batch_size,1,device=device)
+                real_output = net_D(x,real_c)
+                d_real_loss = criterion(real_output,real_labels)
 
-            # 预测saliency map
-            fake_c = net_G(x)
-            # 计算判别器对预测图像的损失
-            fake_labels = torch.zeros(batch_size, 1,device=device)
-            fake_output = net_D(x,fake_c)
-            d_fake_loss = criterion(fake_output, fake_labels)
+                # 预测saliency map
+                fake_c = net_G(x)
+                # 计算判别器对预测图像的损失
+                fake_labels = torch.zeros(batch_size, 1,device=device)
+                fake_output = net_D(x,fake_c)
+                d_fake_loss = criterion(fake_output, fake_labels)
 
-            # 总判别损失
-            d_loss= d_real_loss + d_fake_loss
-            d_loss.backward()
-            optimizer_D.step()
+                # 总判别损失
+                d_loss= d_real_loss + d_fake_loss
+                d_loss.backward()
+                optimizer_D.step()
 
-            # 训练生成器
-            optimizer_G.zero_grad()
-            fake_c = net_G(x)
-            # 计算二元交叉熵损失
-            bce_loss = criterion(fake_c,real_c)
-            fake_labels = torch.ones(batch_size, 1,device=device)
-            fake_output = net_D(x,fake_c)
-            g_fake_loss = criterion(fake_output, fake_labels)
-            g_loss = 0.005 * bce_loss + g_fake_loss
-            g_loss.backward()
-            optimizer_G.step()
-            if i == 0 or i % 100 == 0:
-                print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()/bs} g_loss: {g_loss.item()/bs}]")
-            if f == 0 or f % 1000 == 0:
-                vis(real_c,fake_c,f)
-            f += 1
+                # 训练生成器
+                optimizer_G.zero_grad()
+                fake_c = net_G(x)
+                # 计算二元交叉熵损失
+                bce_loss = criterion(fake_c,real_c)
+                fake_labels = torch.ones(batch_size, 1,device=device)
+                fake_output = net_D(x,fake_c)
+                g_fake_loss = criterion(fake_output, fake_labels)
+                g_loss = 0.005 * bce_loss + g_fake_loss
+                g_loss.backward()
+                optimizer_G.step()
+                if i == 0 or i % 100 == 0:
+                    print(f"[{epoch}/{epochs}][{i+1}/{len(dataloader['train'])}][d_loss: {d_loss.item()/bs} g_loss: {g_loss.item()/bs}]")
+            if epoch == 1 or epoch % 5 == 0:
+                vis(real_c,fake_c,epoch)
 
 def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     net_G,net_D = Generator().to(device),Discriminator().to(device)
     dataloader = get_dataloader(batch_size=32)
     criterion = torch.nn.BCELoss()
-    optimizer_G = torch.optim.Adam(net_G.parameters(),lr=3e-4,weight_decay=1e-4)
-    optimizer_D = torch.optim.Adam(net_D.parameters(),lr=3e-4,weight_decay=1e-4)
-    epochs = 10
+    optimizer_G = torch.optim.Adagrad(net_G.parameters(),lr=3e-4,weight_decay=1e-4)
+    optimizer_D = torch.optim.Adagrad(net_D.parameters(),lr=3e-4,weight_decay=1e-4)
+    epochs = 25
     classifier_nets = {}
     net = torch.load("ckpts/alexnet-GAP_best_acc_0.902.pth",map_location="cpu")
     net.eval()
